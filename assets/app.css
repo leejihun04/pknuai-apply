@@ -93,3 +93,6 @@ a { color: var(--accent); }
   padding: 10px 16px; box-shadow: 0 6px 24px rgba(0,0,0,.18); max-width: 90vw; z-index: 10;
 }
 .empty { color: var(--muted); font-size: 13.5px; padding: 6px 0; }
+.manual { margin-top: 12px; border-top: 1px solid var(--line); padding-top: 10px; }
+.manual summary { cursor: pointer; color: var(--muted); font-size: 13px; }
+.manual textarea { margin-top: 10px; }

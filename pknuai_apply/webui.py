@@ -24,7 +24,7 @@ from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
 from . import apply as apply_module
-from . import agent, config, programs, session, store, watch
+from . import agent, browsercookies, config, login_flow, programs, session, store, watch
 
 ASSETS = Path(__file__).resolve().parent.parent / "assets"
 CACHE_SECONDS = 120
@@ -95,6 +95,7 @@ def build_state(query: str = "", refresh: bool = False) -> dict:
         })
     have_session = bool(session.load_cookie())
     return {
+        "browsers": browsercookies.available_browsers(),
         "programs": rows,
         "error": error,
         "session": {"stored": have_session, "savedAt": session.saved_at()},
@@ -194,6 +195,10 @@ class Handler(BaseHTTPRequestHandler):
         path = urlparse(self.path).path
         if path == "/api/session":
             return self._set_session()
+        if path == "/api/session/import":
+            return self._import_session()
+        if path == "/api/session/open-login":
+            return self._open_login()
         if path == "/api/reserve":
             return self._reserve()
         if path == "/api/apply":
@@ -240,6 +245,36 @@ class Handler(BaseHTTPRequestHandler):
         if checked.get("ok"):
             cached_programs(refresh=True)
         return self._json(HTTPStatus.OK, checked)
+
+    def _import_session(self):
+        # Reads the pknuai cookie straight out of the browser and verifies it.
+        # The first read on macOS raises a keychain prompt the user must allow.
+        browser = str(self._read_json().get("browser") or "").strip()
+        result = login_flow.import_session(browser)
+        if result.get("ok"):
+            cached_programs(refresh=True)
+        # Return only what the page needs. The cookie must never travel to the
+        # browser, so echo named fields rather than the whole result dict.
+        return self._json(HTTPStatus.OK, {
+            "ok": result.get("ok", False),
+            "reason": result.get("reason", ""),
+            "browser": result.get("browser", ""),
+            "no_session": result.get("no_session", False),
+        })
+
+    def _open_login(self):
+        # Opens pknuai in the browser and starts a background poll, so the
+        # student can log in with their phone and the page picks the session up
+        # on its own. The poll writes the session; /api/state then reflects it.
+        browser = str(self._read_json().get("browser") or "").strip()
+
+        def worker():
+            login_flow.wait_for_login(browser, timeout=300)
+            cached_programs(refresh=True)
+
+        threading.Thread(target=worker, daemon=True).start()
+        return self._json(HTTPStatus.OK, {"ok": True,
+                                          "reason": "브라우저에서 로그인을 마치면 이 화면이 자동으로 갱신됩니다."})
 
     def _reserve(self):
         payload = self._read_json()

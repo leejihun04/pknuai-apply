@@ -123,6 +123,36 @@ class Server(TempHome):
     def test_asking_for_a_missing_attachment_is_not_found(self):
         self.assertEqual(call(self.base + "/api/attachment/N999")[0], 404)
 
+    def test_state_lists_the_browsers_a_session_could_be_imported_from(self):
+        from pknuai_apply import browsercookies
+        self.original_browsers = browsercookies.available_browsers
+        browsercookies.available_browsers = lambda: ["Chrome", "Edge"]
+        try:
+            _status, body, _headers = call(self.base + "/api/state")
+            self.assertEqual(json.loads(body)["browsers"], ["Chrome", "Edge"])
+        finally:
+            browsercookies.available_browsers = self.original_browsers
+
+    def test_import_runs_the_flow_and_never_returns_the_cookie(self):
+        from pknuai_apply import login_flow
+        original = login_flow.import_session
+        login_flow.import_session = lambda browser="": {"ok": True, "reason": "Chrome 에서 가져왔습니다",
+                                                        "browser": "Chrome", "cookie": "secret"}
+        try:
+            status, body, _headers = self.post("/api/session/import", {})
+            payload = json.loads(body)
+            self.assertEqual((status, payload["ok"]), (200, True))
+            # The endpoint echoes the flow result; the cookie value itself is
+            # not something the page needs, and the real flow never puts it here.
+            self.assertNotIn("secret", json.dumps(payload))
+        finally:
+            login_flow.import_session = original
+
+    def test_open_login_needs_the_custom_header(self):
+        status, _body, _headers = call(self.base + "/api/session/open-login", method="POST",
+                                       data=b"{}", headers={"Content-Type": "application/json"})
+        self.assertEqual(status, 403)
+
 
 if __name__ == "__main__":
     unittest.main()

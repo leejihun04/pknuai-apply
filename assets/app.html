@@ -20,21 +20,27 @@
 
 <main>
   <section class="card" id="session-card" hidden>
-    <h2>1. pknuai 로그인 세션 저장</h2>
+    <h2>pknuai 로그인 연결</h2>
     <p class="muted">
       부경대 포털 로그인은 휴대폰 인증으로 끝나서 프로그램이 대신 로그인할 수 없습니다.
-      브라우저에서 한 번 로그인한 뒤 그 세션을 여기에 붙여넣어 주세요.
+      브라우저에서 로그인한 세션을 가져오면 됩니다 — 아래 버튼 한 번이면 충분합니다.
     </p>
-    <ol class="steps">
-      <li>브라우저에서 <a href="https://pknuai.pknu.ac.kr/web/nonSbjt/program.do?mId=216" target="_blank" rel="noreferrer noopener">비교과 프로그램 목록</a>에 로그인합니다.</li>
-      <li>개발자도구(F12) → <b>네트워크</b> 탭 → 페이지 새로고침 → <code>program.do</code> 요청을 클릭합니다.</li>
-      <li>요청 헤더의 <b>Cookie</b> 값을 통째로 복사해 아래에 붙여넣습니다.</li>
-    </ol>
-    <textarea id="cookie" rows="3" placeholder="JSESSIONID=...; ..." spellcheck="false"></textarea>
     <div class="row">
-      <button type="button" id="save-session">저장하고 확인</button>
+      <button type="button" id="import-session">브라우저에서 가져오기</button>
+      <button type="button" id="open-login" class="ghost">브라우저 열어서 로그인</button>
       <span class="muted" id="session-result"></span>
     </div>
+    <p class="muted" id="browser-hint"></p>
+    <details class="manual">
+      <summary>직접 붙여넣기 (위 방법이 안 될 때)</summary>
+      <ol class="steps">
+        <li>브라우저에서 <a href="https://pknuai.pknu.ac.kr/web/nonSbjt/program.do?mId=216" target="_blank" rel="noreferrer noopener">비교과 프로그램 목록</a>에 로그인합니다.</li>
+        <li>개발자도구(F12) → <b>네트워크</b> 탭 → 새로고침 → <code>program.do</code> 요청 클릭.</li>
+        <li>요청 헤더의 <b>Cookie</b> 값을 통째로 복사해 아래에 붙여넣습니다.</li>
+      </ol>
+      <textarea id="cookie" rows="3" placeholder="JSESSIONID=...; ..." spellcheck="false"></textarea>
+      <div class="row"><button type="button" id="save-session">저장하고 확인</button></div>
+    </details>
   </section>
 
   <section class="card" id="reservations-card" hidden>

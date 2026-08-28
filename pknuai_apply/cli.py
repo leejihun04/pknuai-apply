@@ -11,7 +11,7 @@ import time
 from datetime import datetime
 from pathlib import Path
 
-from . import agent, config, gate, programs, session, store, watch, webui
+from . import agent, config, gate, login_flow, programs, session, store, watch, webui
 from . import apply as apply_module
 
 STATUS_LABEL = {
@@ -69,6 +69,26 @@ def cmd_session(args) -> int:
     if args.action == "forget":
         _print("세션을 지웠습니다." if session.forget() else "지울 세션이 없습니다.")
         return 0
+    if args.action == "import":
+        _print("브라우저에서 로그인된 pknuai 세션을 찾는 중… (키체인 팝업이 뜨면 '허용')")
+        result = login_flow.import_session(args.browser)
+        _print(("✅ " if result["ok"] else "⚠️ ") + result["reason"])
+        if not result["ok"] and result.get("no_session"):
+            _print("   → 아직 로그인 전이면 `pknuai-apply session login` 을 쓰세요.")
+        return 0 if result["ok"] else 1
+    if args.action == "login":
+        _print("브라우저를 열어 pknuai 로그인 페이지로 이동합니다. 휴대폰 인증까지 마쳐 주세요.")
+        _print("로그인이 끝나면 자동으로 세션을 가져옵니다. (기다리는 중 Ctrl+C 로 취소)")
+        last = {"printed": 0}
+
+        def countdown(remaining):
+            if remaining // 10 != last["printed"]:
+                last["printed"] = remaining // 10
+                _print(f"   … 로그인 대기 중 (남은 시간 {remaining}s)")
+
+        result = login_flow.wait_for_login(args.browser, timeout=args.timeout, on_wait=countdown)
+        _print(("✅ " if result["ok"] else "⚠️ ") + result["reason"])
+        return 0 if result["ok"] else 1
 
     cookie = ""
     if args.file:
@@ -276,6 +296,16 @@ def cmd_logs(args) -> int:
     return 0
 
 
+class _Args:
+    def __init__(self, **kw):
+        self.__dict__.update(kw)
+
+
+def _session_args(action, parsed):
+    return _Args(action=action, browser=getattr(parsed, "browser", ""),
+                 timeout=getattr(parsed, "timeout", 300), file=None, stdin=False, clipboard=False)
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="pknuai-apply",
@@ -283,12 +313,30 @@ def build_parser() -> argparse.ArgumentParser:
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
 
-    p = subparsers.add_parser("session", help="pknuai 로그인 세션 저장/확인")
-    p.add_argument("action", nargs="?", default="set", choices=["set", "check", "forget"])
-    p.add_argument("--file", help="쿠키가 담긴 파일에서 읽기")
-    p.add_argument("--stdin", action="store_true", help="표준 입력에서 읽기")
-    p.add_argument("--clipboard", action="store_true", help="클립보드에서 읽기")
+    p = subparsers.add_parser(
+        "session",
+        help="pknuai 로그인 세션 저장/가져오기/확인",
+        description=("import: 이미 로그인된 브라우저에서 자동으로 가져오기(가장 쉬움). "
+                     "login: 브라우저를 열어 로그인한 뒤 자동 포착. "
+                     "set: Cookie 헤더를 직접 붙여넣기."),
+    )
+    p.add_argument("action", nargs="?", default="import",
+                   choices=["import", "login", "set", "check", "forget"])
+    p.add_argument("--browser", default="",
+                   help="특정 브라우저만 사용 (chrome, edge, brave, whale, firefox …)")
+    p.add_argument("--timeout", type=int, default=300, help="login: 로그인 대기 시간(초)")
+    p.add_argument("--file", help="set: 쿠키가 담긴 파일에서 읽기")
+    p.add_argument("--stdin", action="store_true", help="set: 표준 입력에서 읽기")
+    p.add_argument("--clipboard", action="store_true", help="set: 클립보드에서 읽기")
     p.set_defaults(func=cmd_session)
+
+    sc = subparsers.add_parser("import", help="이미 로그인된 브라우저에서 세션 가져오기 (session import 축약)")
+    sc.add_argument("--browser", default="")
+    sc.set_defaults(func=lambda a: cmd_session(_session_args("import", a)))
+    sc = subparsers.add_parser("login", help="브라우저를 열어 로그인하고 세션 포착 (session login 축약)")
+    sc.add_argument("--browser", default="")
+    sc.add_argument("--timeout", type=int, default=300)
+    sc.set_defaults(func=lambda a: cmd_session(_session_args("login", a)))
 
     p = subparsers.add_parser("list", help="비교과 프로그램 목록")
     p.add_argument("query", nargs="?", default="", help="제목 검색어")

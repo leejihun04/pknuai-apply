@@ -24,24 +24,42 @@ git clone https://github.com/leejihun04/pknuai-apply && cd pknuai-apply
 
 설치한 폴더에서 `./pknuai-apply <명령>` 으로 실행합니다.
 
-## 처음 한 번: 로그인 세션 저장
+## 처음 한 번: 로그인 연결
 
 포털 로그인은 휴대폰 인증(mSABER/FIDO)으로 끝나서 프로그램이 대신 로그인할 수 없습니다.
-브라우저에서 한 번 로그인한 세션을 넘겨주면 됩니다.
-
-1. 브라우저에서 [비교과 프로그램 목록](https://pknuai.pknu.ac.kr/web/nonSbjt/program.do?mId=216)에 로그인
-2. 개발자도구(F12) → **네트워크** 탭 → 새로고침 → `program.do` 요청 클릭
-3. 요청 헤더의 **Cookie** 값 전체를 복사
-4. 아래 명령에 붙여넣기 (화면에 표시되지 않습니다)
+그래서 **브라우저에서 로그인한 세션을 가져오는** 방식입니다. 쿠키를 손으로 복사할 필요는
+없습니다 — 셋 중 하나면 됩니다.
 
 ```bash
-./pknuai-apply session set          # 붙여넣기
+# ① 이미 브라우저에서 pknuai에 로그인해 뒀다면 — 자동으로 가져오기 (가장 쉬움)
+./pknuai-apply session import
+#   macOS는 첫 실행 때 "Chrome Safe Storage 키체인 접근" 팝업이 한 번 뜹니다 → 허용.
+#   Chrome · Edge · Brave · Whale · Chromium · Firefox 를 지원합니다.
+
+# ② 아직 로그인 전이라면 — 브라우저를 대신 열어주고, 로그인이 끝나면 자동 포착
+./pknuai-apply session login
+#   열린 창에서 아이디/비밀번호 + 휴대폰 인증까지 마치면 됩니다.
+
+# ③ 위 방법이 다 막히면 — Cookie 헤더 직접 붙여넣기
+./pknuai-apply session set          # 붙여넣기 (개발자도구 → 네트워크 → program.do 요청의 Cookie 헤더)
 ./pknuai-apply session set --clipboard   # 복사해 둔 값을 바로 사용
+
 ./pknuai-apply session check        # 아직 유효한지 확인
 ```
 
-세션은 `~/.local/share/pknuai-apply/session.json` 에 **0600(본인만 읽기)** 으로 저장됩니다.
-보통 몇 시간~하루면 만료되므로, 중요한 모집 전날에 `session check` 를 한 번 해두세요.
+웹 화면(`./pknuai-apply serve`)에서도 **[브라우저에서 가져오기]** / **[브라우저 열어서 로그인]**
+버튼으로 똑같이 할 수 있습니다.
+
+세션은 `~/.local/share/pknuai-apply/session.json` 에 **0600(본인만 읽기)** 으로 저장되고
+밖으로 나가지 않습니다. 보통 몇 시간~하루면 만료되니, 중요한 모집 전날 `session check` 를
+한 번 해두세요. (자동 가져오기가 있으니 만료돼도 `session import` 한 번이면 됩니다.)
+
+### 자동 가져오기는 어떻게 동작하나
+
+브라우저가 자기 쿠키를 저장해 둔 파일을 **사용자 본인 권한으로** 읽습니다. Chrome 계열은
+값이 암호화돼 있는데, 그 키는 macOS 키체인(또는 Linux 키링)에 있는 **본인만 접근 가능한**
+키라서, OS가 파일에 이미 넣어 둔 도구(`security`/`openssl`)로만 풉니다. pknuai 도메인 쿠키만
+추려서 검증 후 저장하며, **아무것도 외부로 보내지 않습니다.** 별도 설치가 필요 없습니다.
 
 ## 예약하기
 

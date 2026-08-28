@@ -73,6 +73,14 @@ function renderPills() {
 
   $('session-card').hidden = stored && !state.error;
   if (state.error) $('session-result').textContent = state.error;
+  const browsers = state.browsers || [];
+  const importBtn = $('import-session');
+  if (importBtn) {
+    importBtn.disabled = browsers.length === 0;
+    $('browser-hint').textContent = browsers.length
+      ? `가져올 수 있는 브라우저: ${browsers.join(', ')} · 처음 한 번은 키체인 접근을 '허용'하면 됩니다.`
+      : '설치된 브라우저를 찾지 못했습니다. 아래 "직접 붙여넣기"를 사용하세요.';
+  }
 }
 
 function renderReservations() {
@@ -251,6 +259,47 @@ $('file-input').addEventListener('change', async (event) => {
   pendingCode = '';
   await load(false);
 });
+
+const importBtn = $('import-session');
+if (importBtn) {
+  importBtn.addEventListener('click', async () => {
+    importBtn.disabled = true;
+    $('session-result').textContent = '브라우저에서 세션을 찾는 중… (키체인 팝업이 뜨면 허용)';
+    try {
+      const result = await api('/api/session/import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      });
+      $('session-result').textContent = result.reason || '';
+      toast(result.ok ? '세션을 가져왔습니다.' : (result.reason || '가져오지 못했습니다.'));
+      await load(true);
+    } finally {
+      importBtn.disabled = false;
+    }
+  });
+}
+
+const openLoginBtn = $('open-login');
+if (openLoginBtn) {
+  openLoginBtn.addEventListener('click', async () => {
+    const result = await api('/api/session/open-login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({}),
+    });
+    $('session-result').textContent = result.reason || '';
+    toast('브라우저에서 로그인을 마치면 자동으로 연결됩니다.');
+    // Poll a little faster while we wait for the login to land.
+    let tries = 0;
+    const timer = setInterval(async () => {
+      await load(false);
+      if ((state && state.session && state.session.stored && !state.error) || ++tries > 100) {
+        clearInterval(timer);
+      }
+    }, 3000);
+  });
+}
 
 $('save-session').addEventListener('click', async () => {
   const cookie = $('cookie').value.trim();

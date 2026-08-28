@@ -25,7 +25,9 @@ description: 부경대(PKNU) 비교과 프로그램을 예약해 두고 모집�
 | 명령 | 하는 일 |
 |---|---|
 | `./pknuai-apply status` | 세션·감시자·예약·처리 기록 한눈에 |
-| `./pknuai-apply session set` | 브라우저 쿠키 저장(붙여넣기). `--clipboard`, `--file`, `--stdin` |
+| `./pknuai-apply session import` | **로그인된 브라우저에서 세션 자동 추출**(가장 쉬움). Chrome·Edge·Brave·Whale·Firefox |
+| `./pknuai-apply session login` | 브라우저를 대신 열어 로그인 후 세션 자동 포착(로그인 전이면 이걸) |
+| `./pknuai-apply session set` | Cookie 헤더 직접 붙여넣기(위 방법이 안 될 때). `--clipboard`, `--file`, `--stdin` |
 | `./pknuai-apply session check` | 저장된 세션이 아직 유효한지 pknuai에 직접 확인 |
 | `./pknuai-apply list [검색어]` | 프로그램 목록(최신순). `--json`, `--pages N` |
 | `./pknuai-apply show <코드>` | 그 프로그램의 모집기간·상태·설문/팀/외부 여부·지금 신청 가능 여부 |
@@ -40,9 +42,14 @@ description: 부경대(PKNU) 비교과 프로그램을 예약해 두고 모집�
 ## 처음 쓰는 사용자를 도울 때
 
 1. `./pknuai-apply status` 로 세션과 감시자 상태를 먼저 본다.
-2. 세션이 없으면: 브라우저에서 pknuai에 로그인 → 개발자도구 네트워크 탭 → `program.do` 요청의
-   **Cookie 요청 헤더 전체**를 복사 → `./pknuai-apply session set` 에 붙여넣게 안내한다.
-   (포털 로그인은 휴대폰 인증으로 끝나서 자동화가 대신 로그인할 수 없다. 쿠키는 사용자
+2. 세션이 없으면 — **쿠키를 손으로 복사하게 하지 말 것.** 순서대로 시도한다:
+   - 이미 브라우저에 pknuai 로그인이 있으면 `./pknuai-apply session import`. 브라우저 쿠키
+     저장소에서 pknuai 세션만 뽑아 검증·저장한다. macOS는 **첫 실행 때 키체인 팝업**이
+     한 번 뜨는데 '허용'을 누르면 된다(Chrome Safe Storage 키를 읽기 위함).
+   - 로그인 전이면 `./pknuai-apply session login`. 브라우저를 pknuai 로그인 페이지로 열어주고,
+     사용자가 **휴대폰 인증까지** 마치면 세션을 자동으로 포착한다. 자격증명은 절대 묻지 않는다.
+   - 위 방법이 안 되면 그때만 `session set`(Cookie 헤더 붙여넣기)로 안내한다.
+   (포털 로그인은 휴대폰 인증으로 끝나 자동화가 대신 로그인할 수 없다. 세션은 사용자
    컴퓨터의 데이터 디렉터리에 0600으로만 저장되고 밖으로 나가지 않는다.)
 3. 감시자가 미등록이면 `./pknuai-apply install-agent` 를 권한다. **예약만 해두고 감시자가
    없으면 아무 일도 일어나지 않는다** — 이 점을 반드시 말해준다.
