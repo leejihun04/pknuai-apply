@@ -1,0 +1,95 @@
+:root {
+  color-scheme: light dark;
+  --bg: #f6f7f9;
+  --card: #ffffff;
+  --line: #e3e6ea;
+  --text: #1c1f23;
+  --muted: #6b7280;
+  --accent: #1a5fd0;
+  --accent-text: #ffffff;
+  --good: #157a4a;
+  --warn: #a15c00;
+  --bad: #b3261e;
+  --chip: #eef1f6;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #14161a;
+    --card: #1c1f24;
+    --line: #2c313a;
+    --text: #e7eaee;
+    --muted: #9aa3ae;
+    --accent: #6aa1ff;
+    --accent-text: #10131a;
+    --good: #57c99a;
+    --warn: #e0a33c;
+    --bad: #ef7a70;
+    --chip: #262b33;
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Pretendard",
+        "Malgun Gothic", system-ui, sans-serif;
+}
+.bar {
+  display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between;
+  padding: 14px 20px; background: var(--card); border-bottom: 1px solid var(--line);
+  position: sticky; top: 0; z-index: 5;
+}
+.bar h1 { font-size: 17px; margin: 0; letter-spacing: -0.01em; }
+.pills { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.pill {
+  font-size: 12.5px; padding: 4px 10px; border-radius: 999px;
+  background: var(--chip); color: var(--muted); white-space: nowrap;
+}
+.pill.ok { color: var(--good); }
+.pill.warn { color: var(--warn); }
+.pill.bad { color: var(--bad); }
+main { max-width: 940px; margin: 0 auto; padding: 20px; display: grid; gap: 16px; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; }
+.card h2 { font-size: 15px; margin: 0 0 12px; display: flex; align-items: baseline; gap: 8px; }
+.count { font-weight: 400; color: var(--muted); font-size: 13px; }
+.muted { color: var(--muted); font-size: 13px; }
+.steps { margin: 8px 0 12px; padding-left: 20px; color: var(--muted); font-size: 13.5px; }
+.steps code { background: var(--chip); padding: 1px 5px; border-radius: 4px; }
+.row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.row.search { margin-bottom: 12px; }
+input[type="search"], textarea {
+  font: inherit; color: var(--text); background: var(--bg);
+  border: 1px solid var(--line); border-radius: 8px; padding: 8px 11px; width: 100%;
+}
+input[type="search"] { max-width: 320px; }
+textarea { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px; resize: vertical; }
+button {
+  font: inherit; font-size: 13.5px; border: 1px solid transparent; border-radius: 8px;
+  padding: 7px 13px; background: var(--accent); color: var(--accent-text); cursor: pointer;
+}
+button.ghost { background: transparent; color: var(--text); border-color: var(--line); }
+button.danger { background: transparent; color: var(--bad); border-color: var(--line); }
+button:disabled { opacity: .5; cursor: default; }
+button:hover:not(:disabled) { filter: brightness(1.06); }
+.list { display: grid; gap: 10px; }
+.item { border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; display: grid; gap: 8px; }
+.item.reserved { border-color: var(--accent); }
+.item .title { font-weight: 600; line-height: 1.4; }
+.item .meta { color: var(--muted); font-size: 13px; display: flex; gap: 10px; flex-wrap: wrap; }
+.item .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.badge { font-size: 12px; padding: 2px 8px; border-radius: 999px; background: var(--chip); color: var(--muted); }
+.badge.ok { color: var(--good); }
+.badge.warn { color: var(--warn); }
+.badge.bad { color: var(--bad); }
+a { color: var(--accent); }
+.log {
+  margin: 0; max-height: 240px; overflow: auto; font-size: 12.5px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--muted); white-space: pre-wrap;
+}
+.toast {
+  position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%);
+  background: var(--card); border: 1px solid var(--line); border-radius: 10px;
+  padding: 10px 16px; box-shadow: 0 6px 24px rgba(0,0,0,.18); max-width: 90vw; z-index: 10;
+}
+.empty { color: var(--muted); font-size: 13.5px; padding: 6px 0; }

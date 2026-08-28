@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="_csrf" content="c1f0a0e2-token" />
+<title>비교과 프로그램 상세</title>
+</head>
+<body>
+<h3 class="tit">현직자 온라인 토크콘서트</h3>
+<ul class="detail">
+  <li><span>모집기간</span> : 2026.08.24&nbsp; 09:00 &nbsp;~&nbsp; 2026.09.09&nbsp; 23:00</li>
+  <li><span>운영기간</span> : 2026.09.15 ~ 2026.09.16</li>
+  <li><span>정원</span> : 30명</li>
+</ul>
+<button type="button" id="applyApplyBtn0" class="btn" data-recv-no="" data-atch="0">신청하기</button>
+<script type="text/javascript">
+var surveyCnt = 0;
+function personalApply(persRecvNo) {
+	if('OK' != 'OK'){
+		alert('신청 가능한 상태가 아닙니다.');
+		return;
+	} else if('1' != '1'){
+		alert('모집기간이 아닙니다.');
+		return;
+	} else if('N0011001' == 'N0012002'){
+		alert('팀 신청 프로그램입니다.');
+		return;
+	} else if(''.indexOf('수강중') > -1){
+		alert('이미 수강중인 프로그램입니다.');
+		return;
+	}
+	if('0' == 0){
+		goApply(persRecvNo);
+	} else {
+		goSurvey(persRecvNo);
+	}
+}
+</script>
+</body>
+</html>

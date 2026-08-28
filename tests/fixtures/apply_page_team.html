@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="_csrf" content="apply-token" /></head>
+<body>
+<button type="button" class="btn" id="applyApplyBtn1" data-atch="0" data-recv-no="778899">신청</button>
+<script type="text/javascript">
+function applyFiles(appType) {
+	var uploadFormData = new FormData();
+	uploadFormData.append('yy','2026');
+	uploadFormData.append('shtm','20');
+	uploadFormData.append('nonsubjcCd','N202608050');
+	uploadFormData.append('nonsubjcCrsCd','001');
+	uploadFormData.append('atchFileNm','신청서식');
+	if('T' == 'P') {
+		uploadFormData.append('recvNo','778899');
+	} else {
+		uploadFormData.append('recvNo','');
+	}
+	$.ajax({ url: '/web/nonSbjt/applyFiles.do?mId=216', data: uploadFormData });
+}
+</script>
+</body></html>

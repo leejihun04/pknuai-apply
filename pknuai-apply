@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# Thin wrapper so the tool can be run from anywhere as ./pknuai-apply <명령>.
+set -euo pipefail
+here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+python="${PYTHON:-python3}"
+if ! command -v "$python" >/dev/null 2>&1; then
+  echo "python3 이 필요합니다. macOS는 Xcode 명령행 도구, Linux는 배포판 패키지로 설치하세요." >&2
+  exit 1
+fi
+# Keep the caller's working directory (so --attach ./file.hwp still works)
+# and make the package importable from wherever the skill was installed.
+export PYTHONPATH="$here${PYTHONPATH:+:$PYTHONPATH}"
+exec "$python" -m pknuai_apply "$@"

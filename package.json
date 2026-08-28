@@ -1,0 +1,19 @@
+{
+  "name": "pknuai-apply",
+  "version": "1.0.0",
+  "description": "부경대 비교과 프로그램을 예약해 두면 모집 시작 순간에 자동으로 신청하는 Claude Code 스킬",
+  "bin": { "pknuai-apply-install": "bin/install.js" },
+  "files": [
+    "bin/install.js",
+    "pknuai_apply/",
+    "assets/",
+    "tests/",
+    "pknuai-apply",
+    "SKILL.md",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": { "node": ">=16" },
+  "license": "MIT",
+  "keywords": ["pknu", "부경대", "비교과", "claude-code", "skill"]
+}
