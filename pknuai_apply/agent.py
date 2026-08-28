@@ -14,7 +14,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from . import config
+from . import config, store
 
 LABEL = "com.pknuai.apply.watch"
 SERVICE_NAME = "pknuai-apply.service"
@@ -34,6 +34,23 @@ def is_macos() -> bool:
 
 def is_linux() -> bool:
     return platform.system() == "Linux"
+
+
+def is_windows() -> bool:
+    return platform.system() == "Windows"
+
+
+TASK_NAME = "pknuai-apply-watch"
+
+
+def pythonw_executable() -> str:
+    """The windowless Python on Windows, so no console flashes at logon."""
+    exe = sys.executable or "python"
+    if is_windows():
+        candidate = Path(exe).with_name("pythonw.exe")
+        if candidate.exists():
+            return str(candidate)
+    return exe
 
 
 def plist_path() -> Path:
@@ -127,10 +144,18 @@ def is_installed() -> bool:
         return plist_path().exists()
     if is_linux():
         return unit_path().exists()
+    if is_windows():
+        code, _output = _run(["schtasks", "/query", "/tn", TASK_NAME])
+        return code == 0
     return False
 
 
 def is_running() -> bool:
+    # The watcher stamps a heartbeat every second; a fresh one means it is up,
+    # whatever the OS. This is the only reliable signal on Windows, where a
+    # Task Scheduler status string is localised.
+    if store.heartbeat_age() < 30:
+        return True
     if is_macos():
         code, output = _run(["launchctl", "list", LABEL])
         if code != 0:
@@ -142,6 +167,7 @@ def is_running() -> bool:
     if is_linux():
         code, output = _run(["systemctl", "--user", "is-active", SERVICE_NAME])
         return code == 0 and output.strip().startswith("active")
+    # Windows falls through to the heartbeat above.
     return False
 
 
@@ -173,6 +199,17 @@ def install() -> tuple:
         return True, (f"감시자를 등록했습니다 ({SERVICE_NAME}).\n"
                       f"  설정 파일: {target}\n"
                       "  로그아웃해도 돌게 하려면: sudo loginctl enable-linger $USER")
+    if is_windows():
+        # A logon-triggered scheduled task, run windowless so nothing flashes.
+        command = f'"{pythonw_executable()}" -m pknuai_apply watch --quiet'
+        code, output = _run(["schtasks", "/create", "/tn", TASK_NAME, "/tr", command,
+                             "/sc", "onlogon", "/rl", "limited", "/f"])
+        if code != 0:
+            return False, f"작업 스케줄러 등록에 실패했습니다: {output.strip()[:300]}"
+        # /create does not start it now, so kick it off for this session too.
+        _run(["schtasks", "/run", "/tn", TASK_NAME])
+        return True, (f"감시자를 등록했습니다 (작업 스케줄러: {TASK_NAME}).\n"
+                      "  로그인할 때마다 자동으로 시작합니다. 창은 뜨지 않습니다.")
     return False, ("이 운영체제에는 자동 등록을 지원하지 않습니다. 직접 실행해 주세요:\n"
                    f"  {python_executable()} -m pknuai_apply watch")
 
@@ -199,6 +236,11 @@ def uninstall() -> tuple:
             pass
         _run(["systemctl", "--user", "daemon-reload"])
         return True, "감시자를 해제했습니다." if existed else "등록된 감시자가 없습니다."
+    if is_windows():
+        code, _output = _run(["schtasks", "/query", "/tn", TASK_NAME])
+        _run(["schtasks", "/end", "/tn", TASK_NAME])
+        deleted, _out = _run(["schtasks", "/delete", "/tn", TASK_NAME, "/f"])
+        return True, "감시자를 해제했습니다." if code == 0 else "등록된 감시자가 없습니다."
     return False, "이 운영체제에는 등록된 감시자가 없습니다."
 
 
@@ -211,5 +253,9 @@ def restart() -> tuple:
         return True, "감시자를 다시 시작했습니다."
     if is_linux():
         _run(["systemctl", "--user", "restart", SERVICE_NAME])
+        return True, "감시자를 다시 시작했습니다."
+    if is_windows():
+        _run(["schtasks", "/end", "/tn", TASK_NAME])
+        _run(["schtasks", "/run", "/tn", TASK_NAME])
         return True, "감시자를 다시 시작했습니다."
     return False, "지원하지 않는 운영체제입니다."

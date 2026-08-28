@@ -43,12 +43,15 @@ description: 부경대(PKNU) 비교과 프로그램을 예약해 두고 모집�
 
 1. `./pknuai-apply status` 로 세션과 감시자 상태를 먼저 본다.
 2. 세션이 없으면 — **쿠키를 손으로 복사하게 하지 말 것.** 순서대로 시도한다:
-   - 이미 브라우저에 pknuai 로그인이 있으면 `./pknuai-apply session import`. 브라우저 쿠키
-     저장소에서 pknuai 세션만 뽑아 검증·저장한다. macOS는 **첫 실행 때 키체인 팝업**이
-     한 번 뜨는데 '허용'을 누르면 된다(Chrome Safe Storage 키를 읽기 위함).
-   - 로그인 전이면 `./pknuai-apply session login`. 브라우저를 pknuai 로그인 페이지로 열어주고,
-     사용자가 **휴대폰 인증까지** 마치면 세션을 자동으로 포착한다. 자격증명은 절대 묻지 않는다.
-   - 위 방법이 안 되면 그때만 `session set`(Cookie 헤더 붙여넣기)로 안내한다.
+   - **Windows + Chrome/Edge → `session login` 을 먼저 권한다.** 최신 크롬/엣지는 App-Bound
+     Encryption 때문에 저장된 쿠키를 읽을 수 없다. 이 명령은 로그인용 브라우저 창을 열고,
+     로그인이 끝나는 순간 DevTools로 세션을 **평문으로** 받아 온다(암호 해독 불필요). Edge는
+     Windows 기본 탑재라 아무것도 안 깔아도 된다.
+   - **macOS/Linux + 이미 로그인돼 있으면 `session import`** (무클릭). 브라우저 쿠키 저장소를
+     본인 권한으로 읽는다. macOS는 첫 실행 때 키체인 팝업이 한 번 뜨는데 '허용'을 누르면 된다.
+     Windows에서도 **Firefox** 사용자는 import가 바로 된다(평문 저장).
+   - 위가 다 안 되면 그때만 `session set`(Cookie 헤더 붙여넣기).
+   - Windows 사용자는 명령을 `python -m pknuai_apply <명령>` 형태로 쓴다.
    (포털 로그인은 휴대폰 인증으로 끝나 자동화가 대신 로그인할 수 없다. 세션은 사용자
    컴퓨터의 데이터 디렉터리에 0600으로만 저장되고 밖으로 나가지 않는다.)
 3. 감시자가 미등록이면 `./pknuai-apply install-agent` 를 권한다. **예약만 해두고 감시자가

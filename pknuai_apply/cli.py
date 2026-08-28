@@ -77,8 +77,8 @@ def cmd_session(args) -> int:
             _print("   → 아직 로그인 전이면 `pknuai-apply session login` 을 쓰세요.")
         return 0 if result["ok"] else 1
     if args.action == "login":
-        _print("브라우저를 열어 pknuai 로그인 페이지로 이동합니다. 휴대폰 인증까지 마쳐 주세요.")
-        _print("로그인이 끝나면 자동으로 세션을 가져옵니다. (기다리는 중 Ctrl+C 로 취소)")
+        _print("로그인용 브라우저 창을 엽니다. 열린 창에서 로그인 + 휴대폰 인증까지 마쳐 주세요.")
+        _print("로그인이 끝나면 세션을 자동으로 가져오고 창을 닫습니다. (기다리는 중 Ctrl+C 로 취소)")
         last = {"printed": 0}
 
         def countdown(remaining):
@@ -86,7 +86,7 @@ def cmd_session(args) -> int:
                 last["printed"] = remaining // 10
                 _print(f"   … 로그인 대기 중 (남은 시간 {remaining}s)")
 
-        result = login_flow.wait_for_login(args.browser, timeout=args.timeout, on_wait=countdown)
+        result = login_flow.capture_via_cdp(args.browser, timeout=args.timeout, on_wait=countdown)
         _print(("✅ " if result["ok"] else "⚠️ ") + result["reason"])
         return 0 if result["ok"] else 1
 

@@ -12,6 +12,7 @@ learns whether there is one and whether the site still accepts it.
 from __future__ import annotations
 
 import json
+import platform
 import re
 import socket
 import threading
@@ -95,6 +96,7 @@ def build_state(query: str = "", refresh: bool = False) -> dict:
         })
     have_session = bool(session.load_cookie())
     return {
+        "os": {"Darwin": "mac", "Windows": "windows", "Linux": "linux"}.get(platform.system(), "other"),
         "browsers": browsercookies.available_browsers(),
         "programs": rows,
         "error": error,
@@ -269,7 +271,9 @@ class Handler(BaseHTTPRequestHandler):
         browser = str(self._read_json().get("browser") or "").strip()
 
         def worker():
-            login_flow.wait_for_login(browser, timeout=300)
+            # Open a controlled window and capture the login when it lands. On
+            # Windows this is the only path that gets past App-Bound Encryption.
+            login_flow.capture_via_cdp(browser, timeout=300)
             cached_programs(refresh=True)
 
         threading.Thread(target=worker, daemon=True).start()

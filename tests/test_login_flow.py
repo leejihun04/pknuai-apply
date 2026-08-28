@@ -71,39 +71,27 @@ class WaitForLogin(TempHome):
     def setUp(self):
         super().setUp()
         self._import = login_flow.import_session
-        self._open = login_flow._open_browser
+        self._capture = login_flow.capture_via_cdp
 
     def tearDown(self):
         login_flow.import_session = self._import
-        login_flow._open_browser = self._open
+        login_flow.capture_via_cdp = self._capture
         super().tearDown()
 
-    def test_it_returns_at_once_when_already_logged_in(self):
+    def test_an_existing_login_is_taken_without_opening_a_window(self):
         opened = []
-        login_flow._open_browser = lambda *a, **k: opened.append(True)
+        login_flow.capture_via_cdp = lambda *a, **k: opened.append(True)
         login_flow.import_session = lambda browser="": {"ok": True, "reason": "정상"}
         result = login_flow.wait_for_login(timeout=1, interval=1)
         self.assertTrue(result["ok"])
-        self.assertEqual(opened, [])  # no need to open a browser
+        self.assertEqual(opened, [])  # scrape succeeded, no CDP window needed
 
-    def test_it_opens_the_browser_then_catches_the_session(self):
-        login_flow._open_browser = lambda *a, **k: True
-        attempts = {"n": 0}
-
-        def fake_import(browser=""):
-            attempts["n"] += 1
-            return {"ok": attempts["n"] >= 2, "reason": "정상" if attempts["n"] >= 2 else "아직"}
-
-        login_flow.import_session = fake_import
+    def test_it_falls_back_to_opening_a_window_when_no_session_is_stored_yet(self):
+        login_flow.import_session = lambda browser="": {"ok": False, "no_session": True}
+        login_flow.capture_via_cdp = lambda *a, **k: {"ok": True, "reason": "창에서 가져옴"}
         result = login_flow.wait_for_login(timeout=5, interval=0)
         self.assertTrue(result["ok"])
-
-    def test_it_gives_up_after_the_timeout(self):
-        login_flow._open_browser = lambda *a, **k: True
-        login_flow.import_session = lambda browser="": {"ok": False, "reason": "아직"}
-        result = login_flow.wait_for_login(timeout=0, interval=0)
-        self.assertFalse(result["ok"])
-        self.assertTrue(result.get("timed_out"))
+        self.assertIn("창", result["reason"])
 
 
 if __name__ == "__main__":

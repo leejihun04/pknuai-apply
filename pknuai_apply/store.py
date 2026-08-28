@@ -253,6 +253,26 @@ def delete_attachment(code: str) -> bool:
 
 # ---------- 로그 ----------
 
+def heartbeat_path() -> Path:
+    return _path("watch.heartbeat")
+
+
+def touch_heartbeat() -> None:
+    """The watcher stamps this each loop; anyone can tell it is alive by its age."""
+    try:
+        heartbeat_path().write_text(str(time.time()), encoding="utf-8")
+    except OSError:
+        pass
+
+
+def heartbeat_age() -> float:
+    """Seconds since the watcher last stamped, or a huge number if never."""
+    try:
+        return time.time() - heartbeat_path().stat().st_mtime
+    except OSError:
+        return float("inf")
+
+
 def log_path() -> Path:
     return _path(config.LOG_FILE)
 

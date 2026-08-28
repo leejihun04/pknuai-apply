@@ -6,6 +6,8 @@
 같이 올려둘 수 있습니다.
 
 - 파이썬 표준 라이브러리만 씁니다. `pip install` 이 필요 없습니다 (Python 3.9+).
+  Windows·macOS·Linux 모두 지원합니다. Windows는 [python.org](https://www.python.org/downloads/)에서
+  파이썬 설치 시 **"Add python.exe to PATH"** 를 체크하세요.
 - 데이터는 전부 내 컴퓨터에만 저장됩니다. 서버로 보내는 것은 pknuai 요청뿐입니다.
 - 터미널로도, 로컬 웹 화면으로도 쓸 수 있습니다.
 
@@ -23,6 +25,8 @@ git clone https://github.com/leejihun04/pknuai-apply && cd pknuai-apply
 ```
 
 설치한 폴더에서 `./pknuai-apply <명령>` 으로 실행합니다.
+**Windows(PowerShell·명령 프롬프트)** 에서는 `python -m pknuai_apply <명령>` 형태로 씁니다.
+예: `python -m pknuai_apply session login`, `python -m pknuai_apply serve`.
 
 ## 처음 한 번: 로그인 연결
 
@@ -54,12 +58,22 @@ git clone https://github.com/leejihun04/pknuai-apply && cd pknuai-apply
 밖으로 나가지 않습니다. 보통 몇 시간~하루면 만료되니, 중요한 모집 전날 `session check` 를
 한 번 해두세요. (자동 가져오기가 있으니 만료돼도 `session import` 한 번이면 됩니다.)
 
-### 자동 가져오기는 어떻게 동작하나
+### 운영체제별 동작
 
-브라우저가 자기 쿠키를 저장해 둔 파일을 **사용자 본인 권한으로** 읽습니다. Chrome 계열은
-값이 암호화돼 있는데, 그 키는 macOS 키체인(또는 Linux 키링)에 있는 **본인만 접근 가능한**
-키라서, OS가 파일에 이미 넣어 둔 도구(`security`/`openssl`)로만 풉니다. pknuai 도메인 쿠키만
-추려서 검증 후 저장하며, **아무것도 외부로 보내지 않습니다.** 별도 설치가 필요 없습니다.
+| | `session import` (무클릭) | `session login` (로그인 1회) |
+|---|---|---|
+| **Windows** | Firefox만 가능 | **Edge/Chrome 권장.** 로그인 창을 열어 자동 포착 |
+| macOS | Chrome·Edge·Brave·Whale·Firefox | 위가 안 될 때 |
+| Linux | 위와 동일 | 위가 안 될 때 |
+
+- **Windows에서 Chrome·Edge를 쓴다면 `session login`** 을 쓰세요. 최신 크롬/엣지는
+  "앱 보안 암호화(App-Bound Encryption)" 때문에 저장된 쿠키를 다른 프로그램이 읽지 못하게
+  막아 둡니다. 그래서 이 도구는 **로그인용 브라우저 창을 열어**, 로그인이 끝나는 순간
+  브라우저가 들고 있는 세션을 DevTools로 **평문 그대로** 받아 옵니다. 암호 해독도, 추가
+  설치도 없습니다. (Edge는 Windows에 항상 있으니 아무것도 안 깔아도 됩니다.)
+- **macOS·Linux**는 이미 로그인돼 있으면 `session import` 가 브라우저 쿠키 저장소를
+  **본인 권한으로** 읽어 바로 가져옵니다(암호화 값은 OS 키체인/키링의 본인 전용 키로 풉니다).
+- 어느 경우든 pknuai 도메인 쿠키만 추려 검증 후 저장하며, **아무것도 외부로 보내지 않습니다.**
 
 ## 예약하기
 
@@ -77,11 +91,14 @@ git clone https://github.com/leejihun04/pknuai-apply && cd pknuai-apply
 **예약만 해두고 감시자가 없으면 아무 일도 일어나지 않습니다.**
 
 ```bash
-./pknuai-apply install-agent     # 로그인할 때마다 자동 시작 (macOS launchd / Linux systemd)
+./pknuai-apply install-agent     # 로그인할 때마다 자동 시작
+                                 #   Windows=작업 스케줄러 / macOS=launchd / Linux=systemd
 ./pknuai-apply status            # "감시자 ✅ 실행 중" 확인
 ./pknuai-apply logs -n 50        # 무엇을 하고 있는지
 ./pknuai-apply uninstall-agent   # 해제
 ```
+
+Windows에서는 로그인할 때 창이 뜨지 않게 `pythonw` 로 조용히 실행됩니다.
 
 터미널에서 직접 돌리려면 `./pknuai-apply watch` (창을 닫으면 멈춥니다).
 

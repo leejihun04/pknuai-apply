@@ -49,6 +49,10 @@ def chromium_profiles() -> list:
     """(browser label, cookie-db path) for every Chromium profile we can see."""
     system = platform.system()
     roots = {}
+    if system == "Windows":
+        # Chrome/Edge cookies are app-bound encrypted here; `session login`
+        # (CDP) reads them from the live browser instead.
+        return []
     if system == "Darwin":
         support = _mac_supports()
         roots = {
@@ -89,6 +93,9 @@ def firefox_profiles() -> list:
         root = _mac_supports() / "Firefox" / "Profiles"
     elif system == "Linux":
         root = Path.home() / ".mozilla" / "firefox"
+    elif system == "Windows":
+        appdata = os.environ.get("APPDATA", str(Path.home() / "AppData" / "Roaming"))
+        root = Path(appdata) / "Mozilla" / "Firefox" / "Profiles"
     else:
         return []
     if not root.exists():

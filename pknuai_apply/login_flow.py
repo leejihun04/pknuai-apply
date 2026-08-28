@@ -11,10 +11,11 @@ that only the student can answer; the tool's job is to notice when they have.
 from __future__ import annotations
 
 import platform
-import subprocess
+import shutil
+import tempfile
 import time
 
-from . import browsercookies, session
+from . import browsercookies, browserlaunch, cdp, session
 
 LOGIN_URL = "https://pknuai.pknu.ac.kr/web/nonSbjt/program.do?mId=216"
 
@@ -50,25 +51,72 @@ def import_session(browser: str = "") -> dict:
     return last
 
 
-def _open_browser(url: str, browser: str = "") -> bool:
-    system = platform.system()
+def _header_from_cdp(port: int) -> str:
+    """Build a Cookie header from the live browser's pknuai cookies."""
     try:
-        if system == "Darwin":
-            command = ["open"]
-            if browser:
-                command += ["-a", {"chrome": "Google Chrome", "edge": "Microsoft Edge",
-                                   "brave": "Brave Browser", "whale": "Whale",
-                                   "firefox": "Firefox"}.get(browser.lower(), browser)]
-            subprocess.run(command + [url], check=False, timeout=15)
-            return True
-        if system == "Linux":
-            subprocess.run(["xdg-open", url], check=False, timeout=15)
-            return True
-    except (OSError, subprocess.SubprocessError):
-        return False
-    import webbrowser
+        cookies = cdp.all_cookies(port)
+    except cdp.CDPError:
+        return ""
+    picked = {}
+    for cookie in cookies:
+        domain = str(cookie.get("domain") or "")
+        if domain.endswith("pknu.ac.kr"):
+            picked[str(cookie.get("name"))] = str(cookie.get("value"))
+    if not any(name in picked for name in browsercookies.SESSION_COOKIE_NAMES):
+        return ""
+    return "; ".join(f"{name}={value}" for name, value in picked.items())
 
-    return webbrowser.open(url)
+
+def capture_via_cdp(browser: str = "", timeout: int = 300, interval: int = 2,
+                    on_wait=None) -> dict:
+    """Open a browser window, let the student log in, capture the session.
+
+    This is the path that works when the cookie store cannot be read off disk
+    — modern Chrome and Edge on Windows — because it reads the cookies from the
+    running browser over DevTools, in plain text, the moment the login lands.
+    """
+    chosen = browserlaunch.pick(browser)
+    if not chosen:
+        return {"ok": False, "reason": "열 수 있는 브라우저(Edge/Chrome)를 찾지 못했습니다.",
+                "no_browser": True}
+    label, path = chosen
+    port = browserlaunch.free_port()
+    profile = tempfile.mkdtemp(prefix="pknuai-login-")
+    process = None
+    try:
+        process = browserlaunch.launch_for_debugging(path, profile, port, LOGIN_URL)
+        # Wait for the DevTools endpoint to come up.
+        endpoint_deadline = time.time() + 20
+        while time.time() < endpoint_deadline:
+            try:
+                if cdp.browser_websocket_url(port):
+                    break
+            except Exception:  # noqa: BLE001
+                pass
+            time.sleep(0.3)
+        deadline = time.time() + max(interval, timeout)
+        while time.time() < deadline:
+            if on_wait:
+                on_wait(int(deadline - time.time()))
+            header = _header_from_cdp(port)
+            if header:
+                session.save_cookie(header)
+                checked = session.check()
+                checked["browser"] = f"{label} (로그인 창)"
+                if checked.get("ok"):
+                    checked["reason"] = f"{label} 창에서 로그인해 세션을 가져왔습니다 — {checked['reason']}"
+                    return checked
+                session.forget()
+            time.sleep(interval)
+        return {"ok": False, "timed_out": True,
+                "reason": "로그인을 기다리는 시간이 지났습니다. 창에서 로그인을 마친 뒤 다시 시도해 주세요."}
+    finally:
+        if process is not None:
+            try:
+                process.terminate()
+            except Exception:  # noqa: BLE001
+                pass
+        shutil.rmtree(profile, ignore_errors=True)
 
 
 def wait_for_login(browser: str = "", timeout: int = 300, interval: int = 3,
@@ -78,17 +126,11 @@ def wait_for_login(browser: str = "", timeout: int = 300, interval: int = 3,
     ``on_wait`` is called once per poll with the seconds elapsed, so a CLI can
     show a countdown. Returns a session.check-shaped dict.
     """
+    # Already logged in to a browser we can read off disk (mac/Linux, or
+    # Firefox anywhere): take it with no login at all.
     already = import_session(browser)
     if already.get("ok"):
         return already
-    _open_browser(LOGIN_URL, browser)
-    deadline = time.time() + max(interval, timeout)
-    while time.time() < deadline:
-        if on_wait:
-            on_wait(int(deadline - time.time()))
-        time.sleep(interval)
-        result = import_session(browser)
-        if result.get("ok"):
-            return result
-    return {"ok": False, "reason": "로그인을 기다리는 시간이 지났습니다. 브라우저에서 로그인을 마친 뒤 다시 시도해 주세요.",
-            "timed_out": True}
+    # Otherwise open a window we control and capture the login when it lands.
+    # This is the Windows path, and a fine fallback everywhere else.
+    return capture_via_cdp(browser, timeout=timeout, interval=max(2, interval), on_wait=on_wait)

@@ -114,6 +114,7 @@ def snapshot(now: float = None) -> list:
 def run(once: bool = False, quiet: bool = False) -> int:
     """The daemon loop. One second of granularity, which is what the burst needs."""
     seed_due()
+    store.touch_heartbeat()
     store.log("감시 시작" + ("" if not once else " (1회)"), echo=not quiet)
     idle_reported = False
     try:
@@ -125,6 +126,7 @@ def run(once: bool = False, quiet: bool = False) -> int:
                 idle_reported = True
             elif pending:
                 idle_reported = False
+            store.touch_heartbeat()
             tick(now)
             if once:
                 return 0

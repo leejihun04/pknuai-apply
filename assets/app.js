@@ -74,12 +74,25 @@ function renderPills() {
   $('session-card').hidden = stored && !state.error;
   if (state.error) $('session-result').textContent = state.error;
   const browsers = state.browsers || [];
+  const os = state.os || 'other';
   const importBtn = $('import-session');
-  if (importBtn) {
+  const openBtn = $('open-login');
+  if (importBtn && openBtn) {
     importBtn.disabled = browsers.length === 0;
-    $('browser-hint').textContent = browsers.length
-      ? `가져올 수 있는 브라우저: ${browsers.join(', ')} · 처음 한 번은 키체인 접근을 '허용'하면 됩니다.`
-      : '설치된 브라우저를 찾지 못했습니다. 아래 "직접 붙여넣기"를 사용하세요.';
+    // On Windows, Chrome/Edge cookies are app-bound; opening a login window is
+    // the reliable path, so make that the primary button there.
+    const loginPrimary = os === 'windows';
+    openBtn.className = loginPrimary ? '' : 'ghost';
+    importBtn.className = loginPrimary ? 'ghost' : '';
+    let hint;
+    if (os === 'windows') {
+      hint = 'Chrome·Edge를 쓰면 [로그인 창 열기]를 누르세요. (Firefox는 [브라우저에서 가져오기]도 됩니다.)';
+    } else if (browsers.length) {
+      hint = `가져올 수 있는 브라우저: ${browsers.join(', ')} · 처음 한 번은 키체인 접근을 '허용'하면 됩니다.`;
+    } else {
+      hint = '이미 로그인돼 있지 않다면 [로그인 창 열기]를 누르세요.';
+    }
+    $('browser-hint').textContent = hint;
   }
 }
 
@@ -289,7 +302,7 @@ if (openLoginBtn) {
       body: JSON.stringify({}),
     });
     $('session-result').textContent = result.reason || '';
-    toast('브라우저에서 로그인을 마치면 자동으로 연결됩니다.');
+    toast('로그인용 브라우저 창이 열립니다. 로그인을 마치면 자동으로 연결됩니다.');
     // Poll a little faster while we wait for the login to land.
     let tries = 0;
     const timer = setInterval(async () => {
